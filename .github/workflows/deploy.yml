@@ -3,16 +3,22 @@ name: Deploy to Elastic Beanstalk
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: eu-north-1
+
+      # Elastic Beanstalk
       EB_APPLICATION_NAME: crypto-cicd-api-csharp-prod
       EB_ENVIRONMENT_NAME: Crypto-cicd-api-csharp-prod-env
 
-      # Viktigt: unikt per körning + per rerun
+      # Din S3 bucket (FIXAD)
+      EB_S3_BUCKET: crypto-cicd-api-csharp-deploy-2026-abdullahi
+
+      # Unikt per körning + per rerun
       EB_VERSION_LABEL: ${{ github.sha }}-${{ github.run_number }}-${{ github.run_attempt }}
       EB_S3_KEY: deploy-${{ github.sha }}-${{ github.run_number }}-${{ github.run_attempt }}.zip
 
@@ -37,14 +43,14 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "${{ env.EB_S3_KEY }}" "s3://${{ secrets.EB_S3_BUCKET }}/${{ env.EB_S3_KEY }}"
+          aws s3 cp "${{ env.EB_S3_KEY }}" "s3://${{ env.EB_S3_BUCKET }}/${{ env.EB_S3_KEY }}"
 
       - name: Create EB application version
         run: |
           aws elasticbeanstalk create-application-version \
             --application-name "${{ env.EB_APPLICATION_NAME }}" \
             --version-label "${{ env.EB_VERSION_LABEL }}" \
-            --source-bundle S3Bucket="${{ secrets.EB_S3_BUCKET }}",S3Key="${{ env.EB_S3_KEY }}"
+            --source-bundle S3Bucket="${{ env.EB_S3_BUCKET }}",S3Key="${{ env.EB_S3_KEY }}"
 
       - name: Deploy to EB environment
         run: |
